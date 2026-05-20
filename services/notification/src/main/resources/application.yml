@@ -1,0 +1,79 @@
+spring:
+  config:
+    import: "optional:file:.env[.properties]"
+  
+  application:
+    name: notification-service
+
+  # MAIL PROPERTIES
+  mail:
+    host: ${SMTP_SERVER_ADDRESS}
+    port: ${SMTP_SERVER_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  # KAFKA PROPERTIES
+  kafka:
+    bootstrap-servers: ${KAFKA_ADDRESS}
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    
+    # KAFKA CONSUMER PROPERTIES
+    consumer:
+      group-id: notification-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: org.settlehub.notification.core.mail.models.events.UserEmailVerified
+
+  # DATABASE PROPERTIES
+  datasource:
+    url: ${NOTIFICATION_DB_URL:jdbc:postgresql://localhost:5432/notification-service-db}
+    username: ${NOTIFICATION_DB_USERNAME}
+    password: ${NOTIFICATION_DB_PASSWORD}
+  
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+        enable_lazy_load_no_trans: true
+        format_sql: false
+
+server:
+  port: 8001
+  http2:
+    enabled: true
+  servlet:
+    context-path: /notification/api
+
+# LOGGING
+logging:
+  file:
+    name: logs/notification-service.log
+    path: logs
+
+# MAIL LETTER DETAILS
+mail:
+  letters:
+    verification:
+      subject: Verify Your Email
+    reset-password:
+      subject: Reset Your Password
+    registrations:
+      subject: Welcome to our Service!
+
