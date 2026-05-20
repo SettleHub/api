@@ -1,9 +1,0 @@
-### SECRETS ###
-### Example line of added file with secret info. ###
-# secretfile filter=git-crypt diff=git-crypt
-
-src/main/resources/settlement_table.xlsx filter=git-crypt diff=git-crypt
-src/main/resources/application.properties filter=git-crypt diff=git-crypt
-*.sql filter=git-crypt diff=git-crypt
-Dockerfile* filter=git-crypt diff=git-crypt
-configdb/** filter=git-crypt diff=git-crypt
