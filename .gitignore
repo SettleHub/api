@@ -33,6 +33,7 @@ buildNumber.properties
 *.class
 
 # Log files
+logs/
 *.log
 *.log*.gz
 
