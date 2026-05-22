@@ -1,13 +1,8 @@
-name: CD Pipeline (Deploy Discovery to Server)
+name: Discovery Pipeline
 
 on:
-  workflow_run:
-    workflows: ["CD Pipeline (Publish Discovery Image)"]
-    types:
-      - completed
-    branches:
-      - main
-
+  push:
+    paths: ['services/discovery/**']
   workflow_dispatch:
     inputs:
       image_tag:
@@ -16,11 +11,25 @@ on:
         default: 'latest'
 
 jobs:
+  ci:
+    uses: ./.github/workflows/templates/java-ci.yml
+    with:
+      working-directory: services/discovery
+      service-name: discovery-service
+    secrets: inherit
+
+  cd-publish:
+    needs: [ci]
+    uses: ./.github/workflows/templates/docker-cd.yml
+    with:
+      working-directory: services/discovery
+      image-name: discovery-service
+    secrets: inherit
+
   deploy:
+    needs: [cd-publish]
     runs-on: self-hosted
     
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -33,27 +42,25 @@ jobs:
           key: ${{ secrets.DISCOVERY_SERVICE_DEPLOY_SSH_KEY }}
           source: "services/discovery/compose.yml"
           target: "/opt/settlehub/discovery/"
-          strip_components: 2
+          strip_components: 2 
 
       - name: Deploy to Target Machine via SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
           IMAGE_TAG: ${{ github.event.inputs.image_tag || 'latest' }}
+          DISCOVERY_HOST: ${{ secrets.DISCOVERY_SERVICE_DEPLOY_HOST }}
         with:
           host: ${{ secrets.DISCOVERY_SERVICE_DEPLOY_HOST }}
           username: ${{ secrets.DISCOVERY_SERVICE_DEPLOY_USER }}
           key: ${{ secrets.DISCOVERY_SERVICE_DEPLOY_SSH_KEY }}
-          envs: IMAGE_TAG
+          envs: IMAGE_TAG,DISCOVERY_HOST
           script: |
+            mkdir -p /opt/settlehub/discovery/
             cd /opt/settlehub/discovery/
-            
-            echo "EUREKA_INSTANCE_HOSTNAME=${{ secrets.DISCOVERY_SERVICE_DEPLOY_HOST }}" > .env
-            
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
-            docker pull ghcr.io/settlehub/discovery-service:$IMAGE_TAG
-            
-            docker compose up -d
-            
-            docker image prune -a -f --filter "until=24h"
 
+            echo "EUREKA_INSTANCE_HOSTNAME=$DISCOVERY_HOST" > .env
+
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker pull ghcr.io/settlehub/discovery-service:$IMAGE_TAG
+            docker compose up -d
+            docker image prune -a -f --filter "until=24h"
