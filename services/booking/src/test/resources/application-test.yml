@@ -12,3 +12,12 @@ spring:
     
   kafka:
     bootstrap-servers: localhost:9092
+
+eureka:
+  client:
+    enabled: false
+  instance:
+    prefer-ip-address: false
+
+BOOKING_SERVICE_IP: 127.0.0.1
+EUREKA_ADDRESS: localhost:8761
