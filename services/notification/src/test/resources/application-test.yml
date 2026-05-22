@@ -1,0 +1,28 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    
+  kafka:
+    bootstrap-servers: localhost:9092
+  
+  flyway:
+    enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+SMTP_SERVER_ADDRESS: localhost
+SMTP_SERVER_PORT: 25
+MAIL_USERNAME: test
+MAIL_PASSWORD: test
+NOTIFICATION_SERVICE_IP: 127.0.0.1
+EUREKA_ADDRESS: localhost:8761

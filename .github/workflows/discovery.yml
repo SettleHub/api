@@ -12,7 +12,7 @@ on:
 
 jobs:
   ci:
-    uses: ./.github/workflows/templates/java-ci.yml
+    uses: ./.github/workflows/java-ci.yml
     with:
       working-directory: services/discovery
       service-name: discovery-service
@@ -20,7 +20,7 @@ jobs:
 
   cd-publish:
     needs: [ci]
-    uses: ./.github/workflows/templates/docker-cd.yml
+    uses: ./.github/workflows/docker-cd.yml
     with:
       working-directory: services/discovery
       image-name: discovery-service
@@ -29,7 +29,11 @@ jobs:
   deploy:
     needs: [cd-publish]
     runs-on: self-hosted
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
+    environment: production
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
