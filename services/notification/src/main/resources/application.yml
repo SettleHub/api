@@ -77,3 +77,13 @@ mail:
     registrations:
       subject: Welcome to our Service!
 
+# EUREKA DISCOVERY SERVICE
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_ADDRESS:localhost:8761}/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    ip-address: ${NOTIFICATION_SERVICE_IP}
