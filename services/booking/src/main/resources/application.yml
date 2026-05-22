@@ -3,44 +3,32 @@ spring:
     import: "optional:file:.env[.properties]"
   
   application:
-    name: notification-service
-
-  # MAIL PROPERTIES
-  mail:
-    host: ${SMTP_SERVER_ADDRESS}
-    port: ${SMTP_SERVER_PORT}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
+    name: booking-service
 
   # KAFKA PROPERTIES
   kafka:
     bootstrap-servers: ${KAFKA_ADDRESS}
+
+    # KAFKA PRODUCER PROPERTIES
     producer:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     
     # KAFKA CONSUMER PROPERTIES
     consumer:
-      group-id: notification-group
+      group-id: booking-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
         spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
-        spring.json.trusted.packages: "*"
-        spring.json.use.type.headers: false
-        spring.json.value.default.type: org.settlehub.notification.core.mail.models.events.UserEmailVerified
+        spring.json.trusted.packages: "org.settlehub.*" 
+        spring.json.use.type.headers: true
 
   # DATABASE PROPERTIES
   datasource:
-    url: ${NOTIFICATION_DB_URL:jdbc:postgresql://localhost:5432/notification-service-db}
-    username: ${NOTIFICATION_DB_USERNAME}
-    password: ${NOTIFICATION_DB_PASSWORD}
+    url: ${BOOKING_DB_URL:jdbc:postgresql://localhost:5432/booking-service-db}
+    username: ${BOOKING_DB_USERNAME}
+    password: ${BOOKING_DB_PASSWORD}
   
   jpa:
     show-sql: false
@@ -55,27 +43,17 @@ spring:
         format_sql: false
 
 server:
-  port: 8001
+  port: 8003
   http2:
     enabled: true
   servlet:
-    context-path: /notification/api
+    context-path: /booking/api
 
 # LOGGING
 logging:
   file:
-    name: logs/notification-service.log
+    name: logs/booking-service.log
     path: logs
-
-# MAIL LETTER DETAILS
-mail:
-  letters:
-    verification:
-      subject: Verify Your Email
-    reset-password:
-      subject: Reset Your Password
-    registrations:
-      subject: Welcome to our Service!
 
 # EUREKA DISCOVERY SERVICE
 eureka:
@@ -86,4 +64,4 @@ eureka:
     fetch-registry: true
   instance:
     prefer-ip-address: true
-    ip-address: ${NOTIFICATION_SERVICE_IP}
+    ip-address: ${BOOKING_SERVICE_IP}
