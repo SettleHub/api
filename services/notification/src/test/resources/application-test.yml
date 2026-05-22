@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:iam_test_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -12,12 +12,13 @@ spring:
     
   kafka:
     bootstrap-servers: localhost:9092
+  
+  flyway:
+    enabled: false
 
 eureka:
   client:
     enabled: false
-  instance:
-    prefer-ip-address: false
 
 SMTP_SERVER_ADDRESS: localhost
 SMTP_SERVER_PORT: 25
