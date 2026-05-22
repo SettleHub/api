@@ -1,13 +1,12 @@
-package org.settlehub.booking;
+package org.settlehub.notification.core;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class BookingServiceTests {
+class NotificationServiceTests {
 
 	@Test
-	void contextLoads() {
-	}
+	void contextLoads() { }
 
 }
