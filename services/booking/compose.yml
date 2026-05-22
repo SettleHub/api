@@ -1,0 +1,40 @@
+services:
+  booking-service:
+    image: ghcr.io/settlehub/booking-service:latest
+    container_name: booking-service
+    restart: always
+    ports:
+      - "8003:8003"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      
+      - BOOKING_DB_URL=${BOOKING_DB_URL:-jdbc:postgresql://localhost:5432/booking-service-db?sslmode=disable}
+      - BOOKING_DB_USERNAME=${BOOKING_DB_USERNAME}
+      - BOOKING_DB_PASSWORD=${BOOKING_DB_PASSWORD}
+      
+      - KAFKA_ADDRESS=${KAFKA_ADDRESS}
+
+      - EUREKA_ADDRESS=${EUREKA_ADDRESS}
+
+      - BOOKING_SERVICE_IP=${BOOKING_SERVICE_IP}
+      
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          memory: 512M
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8003/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 1m 
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
