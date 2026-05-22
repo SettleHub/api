@@ -1,0 +1,25 @@
+spring:
+  config:
+    import: "optional:file:.env[.properties]"
+
+  application:
+    name: discovery-service
+
+server:
+  port: 8761
+  http2:
+    enabled: true
+
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+
+# LOGGING
+logging:
+  file:
+    name: logs/discovery-service.log
+    path: logs
+
