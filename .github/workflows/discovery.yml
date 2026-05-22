@@ -29,7 +29,11 @@ jobs:
   deploy:
     needs: [cd-publish]
     runs-on: self-hosted
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
+    environment: production
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
