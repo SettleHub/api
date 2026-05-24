@@ -1,0 +1,80 @@
+name: Builder Pipeline
+
+on:
+  push:
+    paths: ['services/builder/**']
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker Image'
+        required: true
+        default: 'latest'
+
+jobs:
+  ci:
+    uses: ./.github/workflows/java-ci.yml
+    with:
+      working-directory: services/builder
+      service-name: builder-service
+    secrets: inherit
+
+  cd-publish:
+    needs: [ci]
+    uses: ./.github/workflows/docker-cd.yml
+    with:
+      working-directory: services/builder
+      image-name: builder-service
+    secrets: inherit
+
+  deploy:
+    needs: [cd-publish]
+    runs-on: self-hosted
+    
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    
+    environment: production
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Copy compose.yml to Target Machine
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.BUILDER_SERVICE_DEPLOY_HOST }}
+          username: ${{ secrets.BUILDER_SERVICE_DEPLOY_USER }}
+          key: ${{ secrets.BUILDER_SERVICE_DEPLOY_SSH_KEY }}
+          source: "services/builder/compose.yml"
+          target: "/opt/settlehub/builder/"
+          strip_components: 2 
+
+      - name: Deploy to Target Machine via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMAGE_TAG: ${{ github.event.inputs.image_tag || 'latest' }}
+          BUILDER_DB_URL: ${{ secrets.BUILDER_DB_URL }}
+          BUILDER_DB_USERNAME: ${{ secrets.BUILDER_DB_USERNAME }}
+          BUILDER_DB_PASSWORD: ${{ secrets.BUILDER_DB_PASSWORD }}
+          KAFKA_ADDRESS: ${{ secrets.KAFKA_ADDRESS }}
+          EUREKA_ADDRESS: ${{ secrets.EUREKA_ADDRESS }}
+          BUILDER_SERVICE_IP: ${{ secrets.BUILDER_SERVICE_IP }}
+        with:
+          host: ${{ secrets.BUILDER_SERVICE_DEPLOY_HOST }}
+          username: ${{ secrets.BUILDER_SERVICE_DEPLOY_USER }}
+          key: ${{ secrets.BUILDER_SERVICE_DEPLOY_SSH_KEY }}
+          envs: IMAGE_TAG,BUILDER_DB_URL,BUILDER_DB_USERNAME,BUILDER_DB_PASSWORD,KAFKA_ADDRESS,EUREKA_ADDRESS,BUILDER_SERVICE_IP
+          script: |
+            mkdir -p /opt/settlehub/builder/
+            cd /opt/settlehub/builder/
+
+            echo "BUILDER_DB_URL=$BUILDER_DB_URL" > .env
+            echo "BUILDER_DB_USERNAME=$BUILDER_DB_USERNAME" >> .env
+            echo "BUILDER_DB_PASSWORD=$BUILDER_DB_PASSWORD" >> .env
+            echo "KAFKA_ADDRESS=$KAFKA_ADDRESS" >> .env
+            echo "EUREKA_ADDRESS=$EUREKA_ADDRESS" >> .env
+            echo "BUILDER_SERVICE_IP=$BUILDER_SERVICE_IP" >> .env
+            
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker pull ghcr.io/settlehub/builder-service:$IMAGE_TAG
+            docker compose up -d
+            docker image prune -a -f --filter "until=24h"

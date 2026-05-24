@@ -1,0 +1,40 @@
+services:
+  builder-service:
+    image: ghcr.io/settlehub/builder-service:latest
+    container_name: builder-service
+    restart: always
+    ports:
+      - "8004:8004"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      
+      - BUILDER_DB_URL=${BUILDER_DB_URL:-jdbc:postgresql://localhost:5432/builder-service-db?sslmode=disable}
+      - BUILDER_DB_USERNAME=${BUILDER_DB_USERNAME}
+      - BUILDER_DB_PASSWORD=${BUILDER_DB_PASSWORD}
+      
+      - KAFKA_ADDRESS=${KAFKA_ADDRESS}
+
+      - EUREKA_ADDRESS=${EUREKA_ADDRESS}
+
+      - BUILDER_SERVICE_IP=${BUILDER_SERVICE_IP}
+      
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          memory: 512M
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8004/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 1m 
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
