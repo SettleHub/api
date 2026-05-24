@@ -1,0 +1,102 @@
+spring:
+  config:
+    import: "optional:file:.env[.properties]"
+  application:
+    name: api-gateway
+  
+  # GATEWAY ROUTES
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: ${ALLOWED_ORIGINS}
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+      server:
+        webflux:
+          routes:
+            - id: iam-service
+              uri: lb://iam-service
+              predicates:
+                - Path=/iam/api/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 5
+                    redis-rate-limiter.burstCapacity: 10
+                    key-resolver: "#{@ipKeyResolver}"
+            
+            - id: booking-service
+              uri: lb://booking-service
+              predicates:
+                - Path=/booking/api/**
+              filters:
+                - JwtAuthenticationFilter
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 5
+                    redis-rate-limiter.burstCapacity: 10
+                    key-resolver: "#{@ipKeyResolver}"
+
+            - id: builder-service
+              uri: lb://builder-service
+              predicates:
+                - Path=/builder/api/**
+              filters:
+                - JwtAuthenticationFilter
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 5
+                    redis-rate-limiter.burstCapacity: 10
+                    key-resolver: "#{@ipKeyResolver}"
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+  # KAFKA PROPERTIES
+  kafka:
+    bootstrap-servers: ${KAFKA_ADDRESS}
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+server:
+  port: 8002
+  http2:
+    enabled: true
+
+# EUREKA CLIENT PROPERTIES
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_ADDRESS:localhost:8761}/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    ip-address: ${API_GATEWAY_IP:127.0.0.1}
+
+# JWT AUTH PROPERTIES
+jwt-service:
+  secret-key: ${JWT_SECRET_KEY}
+
+# LOGGING
+logging:
+  file:
+    name: logs/api-gateway.log
+    path: logs
+
+management:
+  health:
+    redis:
+      enabled: true
+    eureka:
+      enabled: true
