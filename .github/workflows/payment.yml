@@ -1,0 +1,80 @@
+name: Payment Pipeline
+
+on:
+  push:
+    paths: ['services/payment/**']
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker Image'
+        required: true
+        default: 'latest'
+
+jobs:
+  ci:
+    uses: ./.github/workflows/java-ci.yml
+    with:
+      working-directory: services/payment
+      service-name: payment-service
+    secrets: inherit
+
+  cd-publish:
+    needs: [ci]
+    uses: ./.github/workflows/docker-cd.yml
+    with:
+      working-directory: services/payment
+      image-name: payment-service
+    secrets: inherit
+
+  deploy:
+    needs: [cd-publish]
+    runs-on: self-hosted
+    
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    
+    environment: production
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Copy compose.yml to Target Machine
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PAYMENT_SERVICE_DEPLOY_HOST }}
+          username: ${{ secrets.PAYMENT_SERVICE_DEPLOY_USER }}
+          key: ${{ secrets.PAYMENT_SERVICE_DEPLOY_SSH_KEY }}
+          source: "services/payment/compose.yml"
+          target: "/opt/settlehub/payment/"
+          strip_components: 2 
+
+      - name: Deploy to Target Machine via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMAGE_TAG: ${{ github.event.inputs.image_tag || 'latest' }}
+          PAYMENT_DB_URL: ${{ secrets.PAYMENT_DB_URL }}
+          PAYMENT_DB_USERNAME: ${{ secrets.PAYMENT_DB_USERNAME }}
+          PAYMENT_DB_PASSWORD: ${{ secrets.PAYMENT_DB_PASSWORD }}
+          KAFKA_ADDRESS: ${{ secrets.KAFKA_ADDRESS }}
+          EUREKA_ADDRESS: ${{ secrets.EUREKA_ADDRESS }}
+          PAYMENT_SERVICE_IP: ${{ secrets.PAYMENT_SERVICE_IP }}
+        with:
+          host: ${{ secrets.PAYMENT_SERVICE_DEPLOY_HOST }}
+          username: ${{ secrets.PAYMENT_SERVICE_DEPLOY_USER }}
+          key: ${{ secrets.PAYMENT_SERVICE_DEPLOY_SSH_KEY }}
+          envs: IMAGE_TAG,PAYMENT_DB_URL,PAYMENT_DB_USERNAME,PAYMENT_DB_PASSWORD,KAFKA_ADDRESS,EUREKA_ADDRESS,PAYMENT_SERVICE_IP
+          script: |
+            mkdir -p /opt/settlehub/payment/
+            cd /opt/settlehub/payment/
+
+            echo "PAYMENT_DB_URL=$PAYMENT_DB_URL" > .env
+            echo "PAYMENT_DB_USERNAME=$PAYMENT_DB_USERNAME" >> .env
+            echo "PAYMENT_DB_PASSWORD=$PAYMENT_DB_PASSWORD" >> .env
+            echo "KAFKA_ADDRESS=$KAFKA_ADDRESS" >> .env
+            echo "EUREKA_ADDRESS=$EUREKA_ADDRESS" >> .env
+            echo "PAYMENT_SERVICE_IP=$PAYMENT_SERVICE_IP" >> .env
+            
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker pull ghcr.io/settlehub/payment-service:$IMAGE_TAG
+            docker compose up -d
+            docker image prune -a -f --filter "until=24h"

@@ -1,0 +1,40 @@
+services:
+  payment-service:
+    image: ghcr.io/settlehub/payment-service:latest
+    container_name: payment-service
+    restart: always
+    ports:
+      - "8005:8005"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      
+      - PAYMENT_DB_URL=${PAYMENT_DB_URL:-jdbc:postgresql://localhost:5432/payment-service-db?sslmode=disable}
+      - PAYMENT_DB_USERNAME=${PAYMENT_DB_USERNAME}
+      - PAYMENT_DB_PASSWORD=${PAYMENT_DB_PASSWORD}
+      
+      - KAFKA_ADDRESS=${KAFKA_ADDRESS}
+
+      - EUREKA_ADDRESS=${EUREKA_ADDRESS}
+
+      - PAYMENT_SERVICE_IP=${PAYMENT_SERVICE_IP}
+      
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          memory: 512M
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8005/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 1m 
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
