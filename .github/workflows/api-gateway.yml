@@ -58,7 +58,7 @@ jobs:
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
           EUREKA_ADDRESS: ${{ secrets.EUREKA_ADDRESS }}
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
-          ALLOWED_ORIGINS: ${{ variables.ALLOWED_ORIGINS }}
+          ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
           API_GATEWAY_IP: ${{ secrets.API_GATEWAY_IP }}
         with:
           host: ${{ secrets.API_GATEWAY_DEPLOY_HOST }}
