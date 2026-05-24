@@ -20,5 +20,5 @@ eureka:
   client:
     enabled: false
 
-BOOKING_SERVICE_IP: 127.0.0.1
+BUILDER_SERVICE_IP: 127.0.0.1
 EUREKA_ADDRESS: localhost:8761
