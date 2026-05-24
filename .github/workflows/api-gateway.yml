@@ -1,0 +1,84 @@
+name: API Gateway Pipeline
+
+on:
+  push:
+    paths: ['services/api-gateway/**']
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker Image'
+        required: true
+        default: 'latest'
+
+jobs:
+  ci:
+    uses: ./.github/workflows/java-ci.yml
+    with:
+      working-directory: services/api-gateway
+      service-name: api-gateway
+    secrets: inherit
+
+  cd-publish:
+    needs: [ci]
+    uses: ./.github/workflows/docker-cd.yml
+    with:
+      working-directory: services/api-gateway
+      image-name: api-gateway
+    secrets: inherit
+
+  deploy:
+    needs: [cd-publish]
+    runs-on: self-hosted
+    
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    
+    environment: production
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Copy compose.yml to Target Machine
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.API_GATEWAY_DEPLOY_HOST }}
+          username: ${{ secrets.API_GATEWAY_DEPLOY_USER }}
+          key: ${{ secrets.API_GATEWAY_DEPLOY_SSH_KEY }}
+          source: "services/api-gateway/compose.yml"
+          target: "/opt/settlehub/api-gateway/"
+          strip_components: 2 
+
+      - name: Deploy to Target Machine via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMAGE_TAG: ${{ github.event.inputs.image_tag || 'latest' }}
+          KAFKA_ADDRESS: ${{ secrets.KAFKA_ADDRESS }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          EUREKA_ADDRESS: ${{ secrets.EUREKA_ADDRESS }}
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
+          API_GATEWAY_IP: ${{ secrets.API_GATEWAY_IP }}
+        with:
+          host: ${{ secrets.API_GATEWAY_DEPLOY_HOST }}
+          username: ${{ secrets.API_GATEWAY_DEPLOY_USER }}
+          key: ${{ secrets.API_GATEWAY_DEPLOY_SSH_KEY }}
+          envs: IMAGE_TAG,KAFKA_ADDRESS,REDIS_HOST,REDIS_PORT,REDIS_PASSWORD,EUREKA_ADDRESS,JWT_SECRET_KEY,ALLOWED_ORIGINS,API_GATEWAY_IP
+          script: |
+            mkdir -p /opt/settlehub/api-gateway/
+            cd /opt/settlehub/api-gateway/
+
+            echo "KAFKA_ADDRESS=$KAFKA_ADDRESS" > .env
+            echo "REDIS_HOST=$REDIS_HOST" >> .env
+            echo "REDIS_PORT=$REDIS_PORT" >> .env
+            echo "REDIS_PASSWORD=$REDIS_PASSWORD" >> .env
+            echo "EUREKA_ADDRESS=$EUREKA_ADDRESS" >> .env
+            echo "JWT_SECRET_KEY=$JWT_SECRET_KEY" >> .env
+            echo "ALLOWED_ORIGINS=$ALLOWED_ORIGINS" >> .env
+            echo "API_GATEWAY_IP=$API_GATEWAY_IP" >> .env
+            
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker pull ghcr.io/settlehub/api-gateway:$IMAGE_TAG
+            docker compose up -d
+            docker image prune -a -f --filter "until=24h"

@@ -1,0 +1,45 @@
+services:
+  api-gateway:
+    image: ghcr.io/settlehub/api-gateway:latest
+    container_name: api-gateway
+    restart: always
+    ports:
+      - "8002:8002"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      
+      - KAFKA_ADDRESS=${KAFKA_ADDRESS}
+
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      
+      - EUREKA_ADDRESS=${EUREKA_ADDRESS}
+      
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+
+      - API_GATEWAY_IP=${API_GATEWAY_IP}
+      
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          memory: 512M
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8002/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 1m 
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
