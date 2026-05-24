@@ -1,0 +1,38 @@
+services:
+  storage-service:
+    image: ghcr.io/settlehub/storage-service:latest
+    container_name: storage-service
+    restart: always
+    ports:
+      - "8006:8006"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      
+      - STORAGE_DB_URL=${STORAGE_DB_URL:-jdbc:postgresql://localhost:5432/storage-service-db?sslmode=disable}
+      - STORAGE_DB_USERNAME=${STORAGE_DB_USERNAME}
+      - STORAGE_DB_PASSWORD=${STORAGE_DB_PASSWORD}
+      
+      - EUREKA_ADDRESS=${EUREKA_ADDRESS}
+
+      - STORAGE_SERVICE_IP=${STORAGE_SERVICE_IP}
+      
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          memory: 512M
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8006/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 1m 
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
