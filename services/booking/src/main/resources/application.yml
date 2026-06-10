@@ -49,6 +49,10 @@ server:
   servlet:
     context-path: /booking/api
 
+# JWT AUTH PROPERTIES
+jwt-service:
+  secret-key: ${JWT_SECRET_KEY}
+
 # LOGGING
 logging:
   file:

@@ -20,5 +20,8 @@ eureka:
   client:
     enabled: false
 
+jwt-service:
+  secret-key: this_is_a_mock_secret_key_for_testing_purposes_only_12345
+
 BOOKING_SERVICE_IP: 127.0.0.1
 EUREKA_ADDRESS: localhost:8761
