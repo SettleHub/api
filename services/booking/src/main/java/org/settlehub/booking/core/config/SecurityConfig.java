@@ -38,7 +38,13 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable) 
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/health", "/health/**").permitAll()
-                .requestMatchers("/management/**").hasRole("ADMIN")
+                .requestMatchers("/reservations/availability").permitAll()
+                .requestMatchers("/reservations/book").hasAnyAuthority("ROLE_ADMIN", "ROLE_MODERATOR", "ROLE_USER", "ROLE_VISITOR")
+                .requestMatchers("/reservations/calendar").hasAnyAuthority("ROLE_ADMIN", "ROLE_MODERATOR")
+                .requestMatchers("/management/categories").hasAnyAuthority("ROLE_ADMIN")
+                .requestMatchers("/management/rooms").hasAnyAuthority("ROLE_ADMIN")
+                .requestMatchers("/management/housekeeping-rules").hasAnyAuthority("ROLE_ADMIN")
+                .requestMatchers("/housekeeping/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_MODERATOR", "ROLE_USER")
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
