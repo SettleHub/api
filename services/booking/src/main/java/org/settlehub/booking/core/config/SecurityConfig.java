@@ -45,6 +45,13 @@ public class SecurityConfig {
                 .requestMatchers("/management/rooms").hasAnyAuthority("ROLE_ADMIN")
                 .requestMatchers("/management/housekeeping-rules").hasAnyAuthority("ROLE_ADMIN")
                 .requestMatchers("/housekeeping/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_MODERATOR", "ROLE_USER")
+                .requestMatchers(
+                    "/v3/api-docs/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/swagger-resources/**",
+                    "/webjars/**"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
