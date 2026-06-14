@@ -7,17 +7,6 @@ spring:
   # GATEWAY ROUTES
   cloud:
     gateway:
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOrigins: ${ALLOWED_ORIGINS}
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-            allowedHeaders: "*"
       server:
         webflux:
           routes:
