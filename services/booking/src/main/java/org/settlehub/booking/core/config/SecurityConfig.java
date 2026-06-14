@@ -68,7 +68,13 @@ public class SecurityConfig {
      */
     @Bean
     public JwtDecoder jwtDecoder() {
-        byte[] keyBytes = java.util.Base64.getDecoder().decode(secretKey);
+        byte[] keyBytes;
+        try {
+            keyBytes = java.util.Base64.getDecoder().decode(secretKey);
+        } catch (IllegalArgumentException e) {
+            keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+        }
+
         SecretKeySpec keySpec = new SecretKeySpec(keyBytes, "HmacSHA256");
         return NimbusJwtDecoder.withSecretKey(keySpec).build();
     }
